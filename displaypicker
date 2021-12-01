@@ -2,12 +2,10 @@
 
 IFS=$'\n'
 
-rofidm () {
-  rofi -dmenu -font "mono 18" -width 20 $@
-}
+rf_args=('-dmenu' '-font' 'mono 18' '-width' '20')
+positions=('--right-of' '--left-of' '--above' '--below' '--same-as' '--auto')
 
 xr=$(xrandr | tail -n +2)
-positions=('--right-of' '--left-of' '--above' '--below' '--same-as' '--auto')
 displays=($(echo "$xr" | grep -n "^[A-Za-z]" | cut -d$' ' -f1,2))
 
 connected=($(printf "%s\n" ${displays[*]} | \
@@ -15,24 +13,25 @@ connected=($(printf "%s\n" ${displays[*]} | \
 ))
 
 output=$(printf "%s\n" ${connected[*]} | \
-  rofidm -p "output" -lines $(printf "${connected[*]}" | wc -w) )
+  rofi -p "output" -lines ${#connected[@]} ${rf_args[*]} \
+)
 
 interval=($(printf "%s\n" ${displays[*]} | grep $output -A1 | cut -d\: -f1))
 
-position=$(printf "%s\n" ${positions[*]} | rofidm -p $output)
+position=$(printf "%s\n" ${positions[*]} | rofi -p $output ${rf_args[*]})
 [ "$position" == '--auto' ] && xrandr $position && exit 0
 
 position_reference=$(printf "%s\n" ${displays[*]} | \
   grep " connected" | \
   cut -d$' ' -f1 | cut -d\: -f2 | grep -v $output | \
-  rofidm -p $position \
+  rofi -p $position ${rf_args[*]} \
 )
 
 mode=$(echo "$xr" | \
   tail -n +$(( ${interval[0]} + 1 )) | \
   head -n $(( ${interval[1]} - ${interval[0]} - 1 )) | \
   cut -d$' ' -f4 | \
-  rofidm -p "mode" -columns 2 -rows 20 \
+  rofi -p "mode" -columns 2 -rows 20 ${rf_args[*]} \
 )
 
 xr_args=("--output" "$output" "--mode" "$mode" "$position" "$position_reference")
