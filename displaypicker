@@ -1,20 +1,27 @@
 #!/bin/bash
 
-oldIFS=$IFS
 IFS=$'\n'
 
 xr=$(xrandr | tail -n +2)
-
 positions=('--right-of' '--left-of' '--above' '--below' '--same-as' '--auto')
 displays=($(echo "$xr" | grep -n "^[A-Za-z]" | cut -d$' ' -f1,2))
 connected=($(printf "%s\n" ${displays[*]} | grep " connected" | cut -d$' ' -f1 | cut -d\: -f2))
-mode="1920x1080"
 
 output=$(printf "%s\n" ${connected[*]} | rofi -dmenu -p output)
-position=$(printf "%s\n" ${positions[*]} | rofi -dmenu -p position)
-[ "$position" != '--auto' ] && \
-  position_reference=$(printf "%s\n" ${displays[*]} | grep " connected" | cut -d$' ' -f1 | cut -d\: -f2 | grep -v $output| rofi -dmenu -p $position)
 
+interval=($(printf "%s\n" ${displays[*]} | grep $output -A1 | cut -d\: -f1))
+
+position=$(printf "%s\n" ${positions[*]} | rofi -dmenu -p position)
+[ "$position" == '--auto' ] && xrandr $position && exit 0
+
+position_reference=$(printf "%s\n" ${displays[*]} | grep " connected" | cut -d$' ' -f1 | cut -d\: -f2 | grep -v $output| rofi -dmenu -p $position)
+
+mode=$(echo "$xr" | \
+  tail -n +$(( ${interval[0]} + 1 )) | \
+  head -n $(( ${interval[1]} - ${interval[0]} - 1 )) | \
+  cut -d$' ' -f4 | \
+  rofi -dmenu -p mode \
+)
 
 [ -n $output ] && \
   xrandr --output $output --mode $mode $position $position_reference
