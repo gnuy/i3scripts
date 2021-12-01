@@ -1,0 +1,5 @@
+#!/bin/bash
+
+selected_pass=$(find ~/.password-store/ -iname "*.gpg" | awk 'NR > 1 {print $1}' RS='store' FS='.gpg' | rofi -dmenu)
+[ $? -eq 0 ] && pass -c $selected_pass
+[ $? -eq 0 ] && notify-send "🔥Pass 2 clip🔥" "Copied $selected_pass to clipboard. Will clear in 45 seconds." -i "~/.config/bash.png"

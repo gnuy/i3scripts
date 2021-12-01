@@ -1,0 +1,18 @@
+#!/bin/bash
+
+oldIFS=$IFS
+IFS=$'\n'
+
+xr=$(xrandr | tail -n +2)
+
+positions=('--right-of' '--left-of' '--above' '--below' '--same-as')
+displays=($(echo "$xr" | grep -n "^[A-Za-z]" | cut -d$' ' -f1,2))
+connected=($(printf "%s\n" ${displays[*]} | grep " connected" | cut -d$' ' -f1 | cut -d\: -f2))
+mode="1920x1080"
+
+output=$(printf "%s\n" ${connected[*]} | rofi -dmenu -p output)
+position=$(printf "%s\n" ${positions[*]} | rofi -dmenu -p position)
+position_reference=$(printf "%s\n" ${displays[*]} | grep " connected" | cut -d$' ' -f1 | cut -d\: -f2 | grep -v $output| rofi -dmenu -p $position)
+
+
+xrandr --output $output --mode $mode $position $position_reference

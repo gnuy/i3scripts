@@ -1,0 +1,6 @@
+#!/bin/bash
+
+PREVWID=$(xdotool getactivewindow)
+xdotool windowactivate $1
+xdotool key F5
+xdotool windowactivate $PREVWID
