@@ -2,43 +2,46 @@
 
 IFS=$'\n'
 
-xr_args=()
+get_xr_args () {
+  xr=$(xrandr | tail -n +2)
+  displays=($(echo "$xr" | grep -n "^[A-Za-z]" | cut -d$' ' -f1,2))
+
+  connected=($(printf "%s\n" ${displays[*]} | \
+    grep " connected" | cut -d$' ' -f1 | cut -d\: -f2 \
+  ))
+
+  output=$(printf "%s\n" ${connected[*]} | \
+    rofi -p "output" -lines ${#connected[@]} ${rf_args[*]} \
+  )
+
+  [ -n "$output" ] && xr_args=(${xr_args[@]} "--output" $output)
+
+  interval=($(printf "%s\n" ${displays[*]} | grep $output -A1 | cut -d\: -f1))
+
+  position=$(printf "%s\n" ${positions[*]} | rofi -p $output ${rf_args[*]})
+  [ "$position" == '--auto' ] && xr_args=($position) && return 0
+
+  [ -n "$position" ] && \
+    position_reference=$(printf "%s\n" ${displays[*]} | \
+      grep " connected" | \
+      cut -d$' ' -f1 | cut -d\: -f2 | grep -vx $output | \
+      rofi -p $position ${rf_args[*]} \
+    )
+
+  [ -n "$position_reference" ] && xr_args=(${xr_args[@]} $position $position_reference)
+
+  [ -n "$output" ] && mode=$(echo "$xr" | \
+    tail -n +$(( ${interval[0]} + 1 )) | \
+    head -n $(( ${interval[1]} - ${interval[0]} - 1 )) | \
+    cut -d$' ' -f4 | \
+    rofi -p "mode" -columns 2 -rows 20 ${rf_args[*]} \
+  )
+  [ -n "$mode" ] && xr_args=(${xr_args[@]} "--mode" $mode)
+}
+
 rf_args=('-dmenu' '-font' 'mono 18' '-width' '20')
 positions=('--right-of' '--left-of' '--above' '--below' '--same-as' '--auto')
 
-xr=$(xrandr | tail -n +2)
-displays=($(echo "$xr" | grep -n "^[A-Za-z]" | cut -d$' ' -f1,2))
-
-connected=($(printf "%s\n" ${displays[*]} | \
-  grep " connected" | cut -d$' ' -f1 | cut -d\: -f2 \
-))
-
-output=$(printf "%s\n" ${connected[*]} | \
-  rofi -p "output" -lines ${#connected[@]} ${rf_args[*]} \
-)
-
-[ -n "$output" ] && xr_args=(${xr_args[@]} "--output" $output)
-
-interval=($(printf "%s\n" ${displays[*]} | grep $output -A1 | cut -d\: -f1))
-
-position=$(printf "%s\n" ${positions[*]} | rofi -p $output ${rf_args[*]})
-[ "$position" == '--auto' ] && xrandr $position && exit 0
-
-[ -n "$position" ] && \
-  position_reference=$(printf "%s\n" ${displays[*]} | \
-    grep " connected" | \
-    cut -d$' ' -f1 | cut -d\: -f2 | grep -v $output | \
-    rofi -p $position ${rf_args[*]} \
-  )
-
-[ -n "$position_reference" ] && xr_args=(${xr_args[@]} $position $position_reference)
-
-mode=$(echo "$xr" | \
-  tail -n +$(( ${interval[0]} + 1 )) | \
-  head -n $(( ${interval[1]} - ${interval[0]} - 1 )) | \
-  cut -d$' ' -f4 | \
-  rofi -p "mode" -columns 2 -rows 20 ${rf_args[*]} \
-)
-[ -n "$mode" ] && xr_args=(${xr_args[@]} "--mode" $mode)
+get_xr_args
 
 xrandr ${xr_args[*]}
